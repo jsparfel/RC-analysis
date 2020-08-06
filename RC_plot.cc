@@ -58,6 +58,34 @@ void LoadMultiplicityFiles(string pfile1, string pfile2)
     }
   }
   mult2_h.close();
+
+  ifstream mult1_h_pt(Form("%s/multiplicities_hadron_pT_yavg.txt",pfile1.c_str()));
+
+  for(int i=0; i<9; i++)
+  {
+    for(int k=0; k<12; k++)
+    {
+      for(int pt=0; pt<5; pt++)
+      {
+        mult1_h_pt >> fMultiplicities1_pt[i][k][pt].tab[0] >> fMultiplicities1_pt[i][k][pt].tab[1] >> fMultiplicities1_pt[i][k][pt].tab[2];
+      }
+    }
+  }
+  mult1_h_pt.close();
+
+  ifstream mult2_h_pt(Form("%s/multiplicities_hadron_pT_yavg.txt",pfile2.c_str()));
+
+  for(int i=0; i<9; i++)
+  {
+    for(int k=0; k<12; k++)
+    {
+      for(int pt=0; pt<5; pt++)
+      {
+        mult2_h_pt >> fMultiplicities2_pt[i][k][pt].tab[0] >> fMultiplicities2_pt[i][k][pt].tab[1] >> fMultiplicities2_pt[i][k][pt].tab[2];
+      }
+    }
+  }
+  mult2_h_pt.close();
 }
 
 void yweightedavg()
@@ -113,15 +141,19 @@ int main(int argc, char **argv)
 
   TCanvas c10("Mult_comparison_hadron","Mult_comparison_hadron",3200,1600);
   TCanvas c20("Mult_comparison_yavg_hadron","Mult_comparison_yavg_hadron",3200,1600);
+  TCanvas c30("Mult_comparison_yavg_pt_hadron","Mult_comparison_yavg_pt_hadron",3200,1600);
   c10.SetFillColor(0);
   c20.SetFillColor(0);
+  c30.SetFillColor(0);
   c10.Divide(5,2,0,0);
   c20.Divide(5,2,0,0);
+  c30.Divide(5,2,0,0);
 
   ofstream ofs_rc("rad_corr.txt", std::ofstream::out | std::ofstream::trunc);
 
   TGraphErrors* R_h[9][6];
   TGraphErrors* R_y_h[9];
+  TGraphErrors* R_pt_h[9][10];
 
   for(int i=0; i<9; i++)
   {
@@ -149,7 +181,7 @@ int main(int argc, char **argv)
 
       for(int k=0; k<12; k++)
       {
-        r_h.push_back(fMultiplicities2[i][j][k].tab[0] ? fMultiplicities1[i][j][k].tab[0]/fMultiplicities2[i][j][k].tab[0] + j*0.1 : 0);
+        r_h.push_back(fMultiplicities2[i][j][k].tab[0] ? fMultiplicities1[i][j][k].tab[0]/fMultiplicities2[i][j][k].tab[0] + j*0. : 0);
         r_h_err.push_back(sqrt((fMultiplicities1[i][j][k].tab[1]+pow(fMultiplicities2[i][j][k].tab[1],2)*fMultiplicities1[i][j][k].tab[0]
                                 /pow(fMultiplicities2[i][j][k].tab[0],2))/pow(fMultiplicities2[i][j][k].tab[0],2)));
       }
@@ -204,6 +236,79 @@ int main(int argc, char **argv)
           c10.Range(0.1,1.,0.9,1.65);
         }
         c10.Update();
+      }
+    }
+
+    int axisflagh2 = 0;
+
+    for(int pt=0; pt<5; pt++)
+    {
+      std::vector<double> r_pt_h;
+      std::vector<double> r_pt_h_err;
+      std::vector<double> z_range_r_pt_h;
+
+      for(int l=0; l<12; l++)
+      {
+        z_range_r_pt_h.push_back(z_range[l]);
+      }
+
+      for(int k=0; k<12; k++)
+      {
+        r_pt_h.push_back(fMultiplicities2_pt[i][k][pt].tab[0] ? fMultiplicities1_pt[i][k][pt].tab[0]/fMultiplicities2_pt[i][k][pt].tab[0] + pt*0. : 0);
+        r_pt_h_err.push_back(sqrt((fMultiplicities1_pt[i][k][pt].tab[1]+pow(fMultiplicities2_pt[i][k][pt].tab[1],2)*fMultiplicities1_pt[i][k][pt].tab[0]
+                                /pow(fMultiplicities2_pt[i][k][pt].tab[0],2))/pow(fMultiplicities2_pt[i][k][pt].tab[0],2)));
+      }
+
+      for(int k=12; k>0; k--)
+      {
+        if(!r_pt_h[k-1]) {r_pt_h.erase(r_pt_h.begin()+k-1); r_pt_h_err.erase(r_pt_h_err.begin()+k-1); z_range_r_pt_h.erase(z_range_r_pt_h.begin()+k-1);}
+      }
+
+      bool r_pt_h_empty = 0;
+      if(!(int(r_pt_h.size()))) {r_pt_h_empty = 1; cout << "R_h[" << i << "][" << pt << "] is empty !" << endl;}
+
+      R_pt_h[i][pt] = new TGraphErrors(int(r_pt_h.size()),&(z_range_r_pt_h[0]),&(r_pt_h[0]),0,&(r_pt_h_err[0]));
+
+      R_pt_h[i][pt]->SetMarkerColor(fMarkerColorpt[pt]);
+      R_pt_h[i][pt]->SetMarkerSize(2);
+      R_pt_h[i][pt]->SetMarkerStyle(fMarkerStyle[0]);
+
+      if(!r_pt_h_empty)
+      {
+        c30.cd(i+1);
+        gPad->SetFillStyle(4000);
+        if(R_pt_h[i][pt])
+        {
+          if(!axisflagh2) R_pt_h[i][pt]->Draw("SAMEPA");
+          axisflagh2 = 1;
+          R_pt_h[i][pt]->GetXaxis()->SetLimits(0.1,0.9);
+          R_pt_h[i][pt]->SetMinimum(1.);
+          R_pt_h[i][pt]->SetMaximum(1.65);
+          R_pt_h[i][pt]->GetXaxis()->SetLabelSize(0.06);
+          R_pt_h[i][pt]->GetYaxis()->SetLabelSize(0.06);
+          R_pt_h[i][pt]->SetTitle("");
+          if(i>=5) gPad->SetBottomMargin(.15);
+          if(i==0 || i ==5) gPad->SetLeftMargin(.22);
+          if(i==8)
+          {
+            R_pt_h[i][pt]->GetXaxis()->SetTitle("#font[12]{z}");
+            R_pt_h[i][pt]->GetXaxis()->SetTitleSize(0.08);
+            R_pt_h[i][pt]->GetXaxis()->SetTitleOffset(.8);
+          }
+          R_pt_h[i][pt]->GetXaxis()->SetNdivisions(304,kTRUE);
+          R_pt_h[i][pt]->GetYaxis()->SetNdivisions(304,kTRUE);
+          if(i==0)
+          {
+            R_pt_h[i][pt]->GetYaxis()->SetTitle("#font[12]{#eta}^{#font[12]{h}} + #font[12]{#delta}");
+            R_pt_h[i][pt]->GetYaxis()->SetTitleSize(0.08);
+          }
+          R_pt_h[i][pt]->Draw("SAMEP");
+          R_pt_h[i][pt]->GetXaxis()->SetLimits(0.1,0.9);
+          R_pt_h[i][pt]->SetMinimum(1.);
+          R_pt_h[i][pt]->SetMaximum(1.65);
+          c30.Range(0.1,1.,0.9,1.65);
+        }
+        c30.Update();
       }
     }
 
@@ -328,11 +433,67 @@ int main(int argc, char **argv)
   fTitle.DrawLatex(0.05, 0.40,"#color[95]{0.15#scale[0.5]{ }<#scale[0.5]{ }#font[ 12]{y}#scale[0.5]{ }<#scale[0.5]{ }0.20, #delta = 0.1}");
   fTitle.DrawLatex(0.05, 0.32,"#color[2]{0.10#scale[0.5]{ }<#scale[0.5]{ }#font[ 12]{y}#scale[0.5]{ }<#scale[0.5]{ }0.15, #delta = 0}");
 
+  c30.cd(1);
+  fTitle.SetTextSize(0.078);
+  fTitle.SetTextAlign(21);
+  fTitle.DrawLatex(0.5, 1.59,"0.004#scale[0.5]{ }<#scale[0.5]{ }#font[ 12]{x}#scale[0.5]{ }<#scale[0.5]{ }0.01");
+
+  c30.cd(2);
+  fTitle.SetTextSize(0.078);
+  fTitle.SetTextAlign(21);
+  fTitle.DrawLatex(0.5, 1.59,"0.01#scale[0.5]{ }<#scale[0.5]{ }#font[ 12]{x}#scale[0.5]{ }<#scale[0.5]{ }0.02");
+
+  c30.cd(3);
+  fTitle.SetTextSize(0.078);
+  fTitle.SetTextAlign(21);
+  fTitle.DrawLatex(0.5, 1.59,"0.02#scale[0.5]{ }<#scale[0.5]{ }#font[ 12]{x}#scale[0.5]{ }<#scale[0.5]{ }0.03");
+
+  c30.cd(4);
+  fTitle.SetTextSize(0.078);
+  fTitle.SetTextAlign(21);
+  fTitle.DrawLatex(0.5, 1.59,"0.03#scale[0.5]{ }<#scale[0.5]{ }#font[ 12]{x}#scale[0.5]{ }<#scale[0.5]{ }0.04");
+
+  c30.cd(5);
+  fTitle.SetTextSize(0.078);
+  fTitle.SetTextAlign(21);
+  fTitle.DrawLatex(0.5, 1.59,"0.04#scale[0.5]{ }<#scale[0.5]{ }#font[ 12]{x}#scale[0.5]{ }<#scale[0.5]{ }0.06");
+
+  c30.cd(6);
+  fTitle.SetTextSize(0.078);
+  fTitle.SetTextAlign(21);
+  fTitle.DrawLatex(0.5, 1.59,"0.06#scale[0.5]{ }<#scale[0.5]{ }#font[ 12]{x}#scale[0.5]{ }<#scale[0.5]{ }0.1");
+
+  c30.cd(7);
+  fTitle.SetTextSize(0.078);
+  fTitle.SetTextAlign(21);
+  fTitle.DrawLatex(0.5, 1.59,"0.1#scale[0.5]{ }<#scale[0.5]{ }#font[ 12]{x}#scale[0.5]{ }<#scale[0.5]{ }0.14");
+
+  c30.cd(8);
+  fTitle.SetTextSize(0.078);
+  fTitle.SetTextAlign(21);
+  fTitle.DrawLatex(0.5, 1.59,"0.14#scale[0.5]{ }<#scale[0.5]{ }#font[ 12]{x}#scale[0.5]{ }<#scale[0.5]{ }0.18");
+
+  c30.cd(9);
+  fTitle.SetTextSize(0.078);
+  fTitle.SetTextAlign(21);
+  fTitle.DrawLatex(0.5, 1.59,"0.18#scale[0.5]{ }<#scale[0.5]{ }#font[ 12]{x}#scale[0.5]{ }<#scale[0.5]{ }0.4");
+
+  c30.cd(10);
+  fTitle.SetTextSize(0.095);
+  fTitle.SetTextAlign(11);
+  fTitle.DrawLatex(0.05, 0.44,"#color[4]{1.52#scale[0.5]{ }<#scale[0.5]{ }#font[ 12]{p_{T}}#scale[0.5]{ }<#scale[0.5]{ }3.0}");
+  fTitle.DrawLatex(0.05, 0.36,"#color[226]{0.76#scale[0.5]{ }<#scale[0.5]{ }#font[ 12]{p_{T}}#scale[0.5]{ }<#scale[0.5]{ }1.52}");
+  fTitle.DrawLatex(0.05, 0.28,"#color[209]{0.35#scale[0.5]{ }<#scale[0.5]{ }#font[ 12]{p_{T}}#scale[0.5]{ }<#scale[0.5]{ }0.76}");
+  fTitle.DrawLatex(0.05, 0.20,"#color[95]{0.14#scale[0.5]{ }<#scale[0.5]{ }#font[ 12]{p_{T}}#scale[0.5]{ }<#scale[0.5]{ }0.35}");
+  fTitle.DrawLatex(0.05, 0.12,"#color[2]{0.02#scale[0.5]{ }<#scale[0.5]{ }#font[ 12]{p_{T}}#scale[0.5]{ }<#scale[0.5]{ }0.14}");
+
   c10.Update();
   c20.Update();
+  c30.Update();
 
   c10.Print("RC_plot/RC_plot.pdf");
   c20.Print("RC_plot/RC_plot_yavg.pdf");
+  c30.Print("RC_plot/RC_plot_pt_yavg.pdf");
 
   ofs_rc.close();
 

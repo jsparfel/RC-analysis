@@ -5,7 +5,9 @@ using namespace std;
 //Input data : root files to be treated should be in data_path/
 #define data_path "/sps/compass/julien/CahnYSrc"
 
-// Flags 
+// Flags
+#define MOMENTUM_DOWN 12
+#define MOMENTUM_UP 40 
 #define XMIN 0.004
 #define XMAX 0.4
 #define YMIN 0.1
@@ -194,9 +196,10 @@ void resetValues() // reset different arrays to 0
         fNDIS_evt[i][j][k]=0; fNDIS_evt_err[i][j][k]=0;
         fNDIS_evt[i][j][k]=0; fNDIS_evt_err[i][j][k]=0;
         fBinning[i][j][k].tab[0] = 0; fBinning[i][j][k].tab[1] = 0;
-        fBinning[i][j][k].tab[0] = 0; fBinning[i][j][k].tab[1] = 0;
-        fBinning[i][j][k].tab[0] = 0; fBinning[i][j][k].tab[1] = 0;
-        fBinning[i][j][k].tab[0] = 0; fBinning[i][j][k].tab[1] = 0;
+        for(int pt=0; pt<5; pt++)
+        {
+          fBinning_pt[i][j][k][pt].tab[0] = 0; fBinning_pt[i][j][k][pt].tab[1] = 0;
+        }
         fMeanvalues_data[i][j][k].tab[0]=0;
         fMeanvalues_data[i][j][k].tab[1]=0;
         fMeanvalues_data[i][j][k].tab[2]=0;
@@ -212,6 +215,16 @@ void resetValues() // reset different arrays to 0
       }
     }
   }
+}
+
+Float_t fNu_max(int z, Float_t mh)
+{
+  return sqrt(pow(MOMENTUM_UP,2)+pow(mh,2))/fZrange[z+1];
+}
+
+Float_t fNu_min(int z, Float_t mh)
+{
+  return sqrt(pow(MOMENTUM_DOWN,2)+pow(mh,2))/fZrange[z];
 }
 
 int main(int argc, char **argv) // main function
@@ -297,7 +310,7 @@ int main(int argc, char **argv) // main function
       TBranch *phiha = (TBranch*) tree->FindBranch("phiha");
       TBranch *xfh = (TBranch*) tree->FindBranch("xfh");
       TBranch *etah = (TBranch*) tree->FindBranch("etah");
-      TBranch *pth = (TBranch*) tree->FindBranch("pth");
+      TBranch *pt = (TBranch*) tree->FindBranch("pth");
       TBranch *phi_h = (TBranch*) tree->FindBranch("phi_h");
       TBranch *zhtr = (TBranch*) tree->FindBranch("zhtr");
       TBranch *pthtr = (TBranch*) tree->FindBranch("pthtr");
@@ -365,7 +378,7 @@ int main(int argc, char **argv) // main function
         phiha->GetEntry(ip);
         xfh->GetEntry(ip);
         etah->GetEntry(ip);
-        pth->GetEntry(ip);
+        pt->GetEntry(ip);
         phi_h->GetEntry(ip);
         zhtr->GetEntry(ip);
         pthtr->GetEntry(ip);
@@ -453,6 +466,7 @@ int main(int argc, char **argv) // main function
 
         Pvsz pzcontainer;
         Pvsz pzcontainer_err;
+        vector<Float_t> ptlocal;
 
         for(int i=0; i<HadNb->GetLeaf("HadNb")->GetValue(); i++) // Loop over hadrons selected for this event
         {
@@ -462,6 +476,10 @@ int main(int argc, char **argv) // main function
           {
             fPk[0]->Fill(ph->GetLeaf("ph")->GetValue(i));
           }
+
+          // Momentum cut (12 GeV to 40 GeV, increasing to 3 GeV to 40 GeV)
+          if(!(MOMENTUM_DOWN<ph->GetLeaf("ph")->GetValue(i) && ph->GetLeaf("ph")->GetValue(i)<MOMENTUM_UP)) continue;
+          fMom++;
 
           if(kin_flag) fPk[1]->Fill(ph->GetLeaf("ph")->GetValue(i));
           if(kin_flag) fZk[0]->Fill(zh->GetLeaf("zh")->GetValue(i));
@@ -490,11 +508,22 @@ int main(int argc, char **argv) // main function
           else if(0.70<zh->GetLeaf("zh")->GetValue(i) && zh->GetLeaf("zh")->GetValue(i)<0.75) zbin = 10;
           else zbin = 11;
 
+          // nu cut
+          Float_t nu0 = nu->GetLeaf("nu")->GetValue();
+          Float_t mh = sqrt(eh->GetLeaf("eh")->GetValue(i)*eh->GetLeaf("eh")->GetValue(i)-ph->GetLeaf("ph")->GetValue(i)*ph->GetLeaf("ph")->GetValue(i));
+          if(!(fNu_min(zbin,mh)<nu0 && nu0<fNu_max(zbin,mh)))
+          {
+            fNDIS_evt[xbin][ybin][zbin] -= 1;
+            fNDIS_evt_err[xbin][ybin][zbin] -= 1;
+            continue;
+          }
+
           //**********************************************************************
 
           // Save of hadrons
           pzcontainer.vec.push_back(zh->GetLeaf("zh")->GetValue(i));
           pzcontainer_err.vec.push_back(zh->GetLeaf("zh")->GetValue(i));
+          ptlocal.push_back(pow(pt->GetLeaf("pth")->GetValue(i),2));
         }
 
         //Misc
@@ -503,6 +532,8 @@ int main(int argc, char **argv) // main function
         fYBj.push_back(y->GetLeaf("y")->GetValue());
         fWBj.push_back(W->GetLeaf("W")->GetValue());
         fNu.push_back(nu->GetLeaf("nu")->GetValue());
+
+        fpT.push_back(ptlocal);
 
         Q2local.push_back(Q2->GetLeaf("Q2")->GetValue());
         Pvszlocal.push_back(pzcontainer);
@@ -545,8 +576,20 @@ int main(int argc, char **argv) // main function
           else if(0.70<Pvszlocal[i].vec[l] && Pvszlocal[i].vec[l]<0.75) zbin = 10;
           else zbin = 11;
 
+          if(0.02<=fpT[i][l] && fpT[i][l]<0.14) ptbin = 0;
+          else if(0.14<=fpT[i][l] && fpT[i][l]<0.35) ptbin = 1;
+          else if(0.35<=fpT[i][l] && fpT[i][l]<0.76) ptbin = 2;
+          else if(0.76<=fpT[i][l] && fpT[i][l]<1.52) ptbin = 3;
+          else if(1.52<=fpT[i][l] && fpT[i][l]<3.0) ptbin = 4;
+          else ptbin = -1;
+
           fBinning[xbin][ybin][zbin].tab[0] += Pvszlocal[i].vec[l];
           fBinning[xbin][ybin][zbin].tab[1] += Pvsz_errlocal[i].vec[l];
+          if(ptbin!=-1)
+          {
+            fBinning_pt[xbin][ybin][zbin][ptbin].tab[0] += Pvszlocal[i].vec[l];
+            fBinning_pt[xbin][ybin][zbin][ptbin].tab[1] += Pvsz_errlocal[i].vec[l];
+          }
           fMeanvalues[xbin][ybin][zbin].vec[2].push_back(Q2local[i]);
           fMeanvalues[xbin][ybin][zbin].vec[0].push_back(XBjlocal[i]);
           fMeanvalues[xbin][ybin][zbin].vec[1].push_back(YBjlocal[i]);
@@ -555,6 +598,7 @@ int main(int argc, char **argv) // main function
       }
 
       Pvszlocal.clear();
+      fpT.clear();
       Pvsz_errlocal.clear();
       XBjlocal.clear();
       YBjlocal.clear();
@@ -587,6 +631,7 @@ int main(int argc, char **argv) // main function
     }
 
     ofstream ofs_h("hadron.txt", std::ofstream::out | std::ofstream::trunc);
+    ofstream ofs_hpt("hadron_pT.txt", std::ofstream::out | std::ofstream::trunc);
     ofstream ofs_d("DIS.txt", std::ofstream::out | std::ofstream::trunc);
 
     for(int i=0; i<9; i++)
@@ -604,11 +649,16 @@ int main(int argc, char **argv) // main function
           ofs_d << endl;
 
           ofs_h << fBinning[i][j][k].tab[0] << " " << fBinning[i][j][k].tab[1] << endl;
+          for(int pt=0; pt<5; pt++)
+          {
+            ofs_hpt << fBinning_pt[i][j][k][pt].tab[0] << " " << fBinning_pt[i][j][k][pt].tab[1] << endl;
+          }
         }
       }
     }
 
     ofs_h.close();
+    ofs_hpt.close();
     ofs_d.close();
     resetValues();
 

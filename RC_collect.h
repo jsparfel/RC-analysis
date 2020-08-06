@@ -21,8 +21,12 @@ struct Recovery_tank { Double_t tab[4]; };
 
 //Binning
 Wrapper fBinning[9][6][12];
+Wrapper fBinning_pt[9][6][12][5];
 Multiplicities fMultiplicities[9][6][12];
 Multiplicities fMultiplicities_yavg[9][12];
+Multiplicities fMultiplicities_pt[9][6][12][5];
+Multiplicities fMultiplicities_pt_yavg[9][12][5];
+
 Recovery_tank fMeanvalues_size[9][6][12];
 Recovery_tank fMeanvalues_data[9][6][12];
 Recovery_tank fMeanvalues_yavg[9][12];

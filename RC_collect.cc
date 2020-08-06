@@ -69,6 +69,15 @@ void yweightedavg()
           fMeanvalues_yavg[x][z].tab[2] += fMeanvalues_data[x][i][z].tab[2]/fMultiplicities[x][i][z].tab[1];
           fMeanvalues_yavg[x][z].tab[3] += fMeanvalues_data[x][i][z].tab[3]/fMultiplicities[x][i][z].tab[1];
         }
+        for(int pt=0; pt<5; pt++)
+        {
+          if(fMultiplicities_pt[x][i][z][pt].tab[0])
+          {
+              fMultiplicities_pt_yavg[x][z][pt].tab[0]+=fMultiplicities_pt[x][i][z][pt].tab[0]/fMultiplicities_pt[x][i][z][pt].tab[1];
+              fMultiplicities_pt_yavg[x][z][pt].tab[1]+=1/fMultiplicities_pt[x][i][z][pt].tab[1];
+              fMultiplicities_pt_yavg[x][z][pt].tab[2]+=1/fMultiplicities_pt[x][i][z][pt].tab[2];
+          }
+        }
       }
       if(fMultiplicities_yavg[x][z].tab[0])
       {
@@ -78,6 +87,15 @@ void yweightedavg()
         fMeanvalues_yavg[x][z].tab[0] *= fMultiplicities_yavg[x][z].tab[1];
         fMeanvalues_yavg[x][z].tab[2] *= fMultiplicities_yavg[x][z].tab[1];
         fMeanvalues_yavg[x][z].tab[3] *= fMultiplicities_yavg[x][z].tab[1];
+      }
+      for(int pt=0; pt<5; pt++)
+      {
+        if(fMultiplicities_pt_yavg[x][z][pt].tab[0])
+        {
+          fMultiplicities_pt_yavg[x][z][pt].tab[1]=1/fMultiplicities_pt_yavg[x][z][pt].tab[1];
+          fMultiplicities_pt_yavg[x][z][pt].tab[2]=1/fMultiplicities_pt_yavg[x][z][pt].tab[2];
+          fMultiplicities_pt_yavg[x][z][pt].tab[0]*=fMultiplicities_pt_yavg[x][z][pt].tab[1];
+        }
       }         
     }
   }
@@ -126,6 +144,7 @@ int main(int argc, char **argv)
   }
 
   ifstream had_file("hadron.txt");
+  ifstream had_pt_file("hadron_pT.txt");
 
   for(int i=0; i<9; i++)
   {
@@ -153,9 +172,18 @@ int main(int argc, char **argv)
         fBinning[i][j][k].tab[0] += dummy;
         had_file >> dummy;
         fBinning[i][j][k].tab[1] += dummy;
+        for(int pt=0; pt<5; pt++)
+        {
+          had_pt_file >> dummy;
+          fBinning_pt[i][j][k][pt].tab[0] += dummy;
+          had_pt_file >> dummy;
+          fBinning_pt[i][j][k][pt].tab[1] += dummy;
+        }
       }
     }
   }
+
+
 
 
   for(int i=0; i<9; i++)
@@ -210,6 +238,7 @@ int main(int argc, char **argv)
   ofstream ofs_t(Form("%s/multiplicities_raw.txt",data_path), ofstream::out | ofstream::trunc);
   ofstream ofs_h(Form("%s/multiplicities_hadron.txt",data_path), ofstream::out | ofstream::trunc);
   ofstream ofs_yah(Form("%s/multiplicities_hadron_yavg.txt",data_path), ofstream::out | ofstream::trunc);
+  ofstream ofs_hpt(Form("%s/multiplicities_hadron_pT_yavg.txt",data_path), ofstream::out | ofstream::trunc);
 
   vector<Float_t> h_m[9][6];
   vector<Float_t> h_err[9][6];
@@ -252,6 +281,27 @@ int main(int argc, char **argv)
           fMultiplicities[i][jj][k].tab[0] = 0 ;
           fMultiplicities[i][jj][k].tab[1] = 0 ;
           fMultiplicities[i][jj][k].tab[2] = 0 ;
+        }
+
+        for(int pt=0; pt<5; pt++)
+        {
+          fMultiplicities_pt[i][jj][k][pt].tab[0] += (fBinning_pt[i][jj][k][pt].tab[0] && fNDIS_evt[i][jj][k] ?
+                                                    Float_t(fBinning_pt[i][jj][k][pt].tab[0]/(fNDIS_evt[i][jj][k]*fZ_bin_width[k]))
+                                                    : 0);
+
+          fMultiplicities_pt[i][jj][k][pt].tab[1] += (fNDIS_evt[i][jj][k] ?
+                                                    Float_t((fBinning_pt[i][jj][k][pt].tab[1]/pow(fNDIS_evt[i][jj][k],2)-pow(fBinning_pt[i][jj][k][pt].tab[0],2)*
+                                                    fNDIS_evt_err[i][jj][k]/pow(fNDIS_evt[i][jj][k],4))*pow(1./(fZ_bin_width[k]),2))
+                                                    : 0);
+
+          fMultiplicities_pt[i][jj][k][pt].tab[2] += 0;
+
+          if(fMultiplicities_pt[i][jj][k][pt].tab[0]<=0 || fMultiplicities_pt[i][jj][k][pt].tab[0]*0.5<fMultiplicities_pt[i][jj][k][pt].tab[1])
+          {
+            fMultiplicities_pt[i][jj][k][pt].tab[0] = 0 ;
+            fMultiplicities_pt[i][jj][k][pt].tab[1] = 0 ;
+            fMultiplicities_pt[i][jj][k][pt].tab[2] = 0 ;
+          }
         }
 
         ofs_t << fXrange[i] << " " << fYrange[jj] << " " << fZrange[k] << " ";
@@ -369,6 +419,14 @@ int main(int argc, char **argv)
       fMultiplicities_yavg[i][k].tab[1] << " " <<
       fMultiplicities_yavg[i][k].tab[2] << " " <<
       (fMultiplicities_yavg[i][k].tab[0] ? 1 : 0) << " ";
+
+      for(int pt=0; pt<5; pt++)
+      {
+        ofs_hpt <<
+        fMultiplicities_pt_yavg[i][k][pt].tab[0] << " " <<
+        fMultiplicities_pt_yavg[i][k][pt].tab[1] << " " <<
+        fMultiplicities_pt_yavg[i][k][pt].tab[2] << " ";
+      }
 
       h_y[i].push_back(fMultiplicities_yavg[i][k].tab[0]);
       h_y_err[i].push_back(sqrt(fMultiplicities_yavg[i][k].tab[1]));
@@ -590,6 +648,7 @@ int main(int argc, char **argv)
 
   ofs_h.close();
   ofs_yah.close();
+  ofs_hpt.close();
 
   return 0;
 }

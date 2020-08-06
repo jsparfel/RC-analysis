@@ -66,6 +66,7 @@ vector<Float_t> fWBj;
 vector<Float_t> fWBjkin;
 vector<Float_t> fNu;
 vector<Float_t> fNukin;
+vector<vector<Float_t>> fpT;
 
 //Counting
 Double_t fQ2test = 0;
@@ -75,16 +76,19 @@ Double_t fWBjtest = 0;
 Double_t fHadrons = 0;
 Double_t fZtest = 0;
 Double_t fFilesNumber = 0;
+Double_t fMom = 0;
 
 //Binning
 Wrapper fBinning[9][6][12];
+Wrapper fBinning_pt[9][6][12][5];
 Recovery fMeanvalues[9][6][12]; // tab[][][i], iC[0,3] : x,y,Q2,z
 Recovery_tank fMeanvalues_size[9][6][12];
 Recovery_tank fMeanvalues_data[9][6][12];
 Float_t fNDIS_evt[9][6][12];
 Float_t fNDIS_evt_err[9][6][12];
-Int_t xbin, ybin, zbin;
+Int_t xbin, ybin, zbin, ptbin;
 Float_t fYrange[7] = {.1,.15,.2,.3,.5,.7,.9};
+Float_t fZrange[13] = {.20,.25,.30,.35,.40,.45,.50,.55,.60,.65,.70,.75,.85};
 
 //Draw
 TH1F* fKinematics[6];
