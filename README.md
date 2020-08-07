@@ -78,6 +78,7 @@ where `[exe_path]` is a directory containing the executable `RC_collect`.
  - **Multiplicity text files in `[data_path]/`:**
   - **`multiplicities_hadron.txt`**
   - **`multiplicities_hadron_yavg.txt`**
+  - **`multiplicities_hadron_pT_yavg.txt`**
   - **`multiplicities_raw.txt`**
  - **Multiplicity plots in `[data_path]/`:**
   - **`hadron_multiplicity_file.pdf` plots multiplicities in bins of x,y,z**
@@ -105,4 +106,5 @@ where `[exe_path]` is a directory containing the executable `RC_plot` and `[MULT
  - **Files in `./RC_plot/`:**
   - **`RC_plot.pdf`: radiative corrections in bins of x,y,z**
   - **`RC_plot_yavg.pdf`: y-averaged radiative corrections in bins of x,z**
+  - **`RC_plot_pt_yavg.pdf`: y-averaged radiative corrections in bins of x,z and pT (transverse momentum)**
   - **`rad_corr.txt`: y-averaged radiative corrections**
