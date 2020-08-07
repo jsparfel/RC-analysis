@@ -149,7 +149,7 @@ int main(int argc, char **argv)
   c20.Divide(5,2,0,0);
   c30.Divide(5,2,0,0);
 
-  ofstream ofs_rc("rad_corr.txt", std::ofstream::out | std::ofstream::trunc);
+  ofstream ofs_rc("RC_plot/rad_corr.txt", std::ofstream::out | std::ofstream::trunc);
 
   TGraphErrors* R_h[9][6];
   TGraphErrors* R_y_h[9];
@@ -181,14 +181,15 @@ int main(int argc, char **argv)
 
       for(int k=0; k<12; k++)
       {
-        r_h.push_back(fMultiplicities2[i][j][k].tab[0] ? fMultiplicities1[i][j][k].tab[0]/fMultiplicities2[i][j][k].tab[0] + j*0. : 0);
+        ofs_rc << (fMultiplicities2[i][j][k].tab[0] ? fMultiplicities1[i][j][k].tab[0]/fMultiplicities2[i][j][k].tab[0] : 0) << " ";
+        r_h.push_back(fMultiplicities2[i][j][k].tab[0] ? fMultiplicities1[i][j][k].tab[0]/fMultiplicities2[i][j][k].tab[0] + j*0.1 : 0);
         r_h_err.push_back(sqrt((fMultiplicities1[i][j][k].tab[1]+pow(fMultiplicities2[i][j][k].tab[1],2)*fMultiplicities1[i][j][k].tab[0]
                                 /pow(fMultiplicities2[i][j][k].tab[0],2))/pow(fMultiplicities2[i][j][k].tab[0],2)));
       }
 
       for(int k=12; k>0; k--)
       {
-        if(!r_h[k-1]) {r_h.erase(r_h.begin()+k-1); r_h_err.erase(r_h_err.begin()+k-1); z_range_r_h.erase(z_range_r_h.begin()+k-1);}
+        if(!r_h[k-1] || (r_h_err[k-1] > 0.5*(r_h[k-1]-1)) ) {r_h.erase(r_h.begin()+k-1); r_h_err.erase(r_h_err.begin()+k-1); z_range_r_h.erase(z_range_r_h.begin()+k-1);}
       }
 
       bool r_h_empty = 0;
@@ -322,7 +323,6 @@ int main(int argc, char **argv)
                               /pow(fMultiplicities2_yavg[i][k].tab[0],2))/pow(fMultiplicities2_yavg[i][k].tab[0],2)) : 0;
       r_y_h.push_back(multy);
       r_y_h_err.push_back(multye);
-      ofs_rc << i << " " << k << " " << multy << " " << multye << " " << endl;
     }
 
     for(int k=12; k>0; k--)
